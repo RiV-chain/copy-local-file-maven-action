@@ -10,6 +10,10 @@ inputs:
   artifact_path:
     description: "Local file path"
     required: true
+  artifact_source_path:
+    description: "Local source file path"
+    required: false
+    default: ""
   artifact_id:
     description: "Artifact ID"
     required: true
@@ -49,6 +53,15 @@ runs:
     - name: Copy artifact
       run: |
         cp ${{ inputs.artifact_path }} src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.${{ env.EXTENSION }}
+      shell: bash
+
+    - name: Copy source artifact if provided
+      if: inputs.artifact_source_path != ''
+      run: |
+        ORIGINAL_SOURCE_FILENAME=$(basename ${{ inputs.artifact_source_path }})
+        SOURCE_EXTENSION="${ORIGINAL_SOURCE_FILENAME##*.}"
+        echo "SOURCE_EXTENSION=$SOURCE_EXTENSION" >> $GITHUB_ENV
+        cp ${{ inputs.artifact_source_path }} src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}-sources.${{ env.SOURCE_EXTENSION }}
       shell: bash
 
     - name: Generate Metadata
@@ -97,12 +110,23 @@ runs:
     - name: Generate checksums
       run: |
         ARTIFACT_PATH=src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}
-
+        
         # Generate checksums for the artifact and POM
         sha1sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.sha1"
         md5sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.md5"
         sha1sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.sha1"
         md5sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.md5"
+
+      shell: bash
+
+    - name: Generate source checksums
+      if: inputs.artifact_source_path != ''
+      run: |
+        ARTIFACT_PATH=src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}
+        
+        # Generate checksums for the source artifact if provided
+        sha1sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.sha1"
+        md5sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.md5"
       shell: bash
 
     - name: Commit files
