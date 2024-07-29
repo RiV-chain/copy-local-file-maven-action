@@ -61,7 +61,7 @@ runs:
         ORIGINAL_SOURCE_FILENAME=$(basename ${{ inputs.artifact_source_path }})
         SOURCE_EXTENSION="${ORIGINAL_SOURCE_FILENAME##*.}"
         echo "SOURCE_EXTENSION=$SOURCE_EXTENSION" >> $GITHUB_ENV
-        cp ${{ inputs.artifact_source_path }} src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}-sources.${{ env.SOURCE_EXTENSION }}
+        cp ${{ inputs.artifact_source_path }} src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}-sources.${SOURCE_EXTENSION}
       shell: bash
 
     - name: Generate Metadata
