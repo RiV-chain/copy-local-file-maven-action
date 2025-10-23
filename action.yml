@@ -28,7 +28,15 @@ runs:
   using: "composite"
   steps:
     - name: Install xmlstarlet
-      run: sudo apt-get install -y xmlstarlet
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sudo apt-get install -y xmlstarlet
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          brew install xmlstarlet
+        else
+          echo "Unsupported OS: $RUNNER_OS"
+          exit 1
+        fi
       shell: bash
 
     - name: Set environment variables
@@ -112,10 +120,20 @@ runs:
         ARTIFACT_PATH=src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}
         
         # Generate checksums for the artifact and POM
-        sha1sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.sha1"
-        md5sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.md5"
-        sha1sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.sha1"
-        md5sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.md5"
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sha1sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.sha1"
+          md5sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.md5"
+          sha1sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.sha1"
+          md5sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.md5"
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          shasum -a 1 "$ARTIFACT_PATH.${{ env.EXTENSION }}" | cut -d' ' -f1 > "$ARTIFACT_PATH.${{ env.EXTENSION }}.sha1"
+          md5 "$ARTIFACT_PATH.${{ env.EXTENSION }}" | cut -d' ' -f4 > "$ARTIFACT_PATH.${{ env.EXTENSION }}.md5"
+          shasum -a 1 "$ARTIFACT_PATH.pom" | cut -d' ' -f1 > "$ARTIFACT_PATH.pom.sha1"
+          md5 "$ARTIFACT_PATH.pom" | cut -d' ' -f4 > "$ARTIFACT_PATH.pom.md5"
+        else
+          echo "Unsupported OS: $RUNNER_OS"
+          exit 1
+        fi
 
       shell: bash
 
@@ -125,8 +143,16 @@ runs:
         ARTIFACT_PATH=src/${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}
         
         # Generate checksums for the source artifact if provided
-        sha1sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.sha1"
-        md5sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.md5"
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sha1sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.sha1"
+          md5sum "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.md5"
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          shasum -a 1 "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" | cut -d' ' -f1 > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.sha1"
+          md5 "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}" | cut -d' ' -f4 > "$ARTIFACT_PATH-sources.${{ env.SOURCE_EXTENSION }}.md5"
+        else
+          echo "Unsupported OS: $RUNNER_OS"
+          exit 1
+        fi
       shell: bash
 
     - name: Commit files
